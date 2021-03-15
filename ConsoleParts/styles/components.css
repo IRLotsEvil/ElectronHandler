@@ -1,0 +1,365 @@
+
+label.modal{
+    margin:0;
+    padding:0;
+    display: inline-block;
+}
+label.modal.toitem{display: block;}
+label.modal>span{
+    padding:0 15px;
+    display: inline-block;
+    color:white;
+    font-weight:400px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 15pt;
+    background-color:lightseagreen;
+    border:3px solid black;
+    border-color: rgba(0,0,0,0);
+    line-height: 34px;
+    cursor: pointer;
+}
+label.modal.toitem>span{
+    border:none;
+    line-height: 30px;
+    display: block;
+    background-color: rgba(255,255,255,0);
+    color:black;
+    padding:0 10px;
+    cursor: default;
+}
+label.modal>span:hover{border-color:rgba(0, 0, 0, 0.5);}
+label.modal.toitem>span:hover{background-color: rgba(0, 136, 177,1); color:white;}
+label.modal>input[type=checkbox]{display:none;}
+label.modal>input[type=checkbox]:checked+span{border-color:rgba(255, 255, 255, 0.7);background-color:rgba(0, 136, 177,0.5);}
+label.modal>input[type=checkbox]~ div{display: none;}
+label.modal>input[type=checkbox]:checked ~ div{
+    display: block;
+    top:0;
+    left:0;
+    position: fixed;
+    width:100%;
+    height:100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+label.modal>input[type=checkbox]:checked ~ div > label{
+    display: block;
+    width:720px;
+    height:480px;
+    margin:100px auto;
+    background-color: white;
+    border: 3px rgb(218, 218, 218) solid;
+    border-radius: 15px;
+    position: relative;
+    padding:15px;
+}
+label.modal>input[type=checkbox]:checked ~ div > label>input[type=text]:first-child{display: none;}
+label.modal>input[type=checkbox]:checked ~ div > label h1.title{
+    text-align: center;
+    margin: 20px 0 ;
+    font-weight:bolder;
+    font-family: Arial, Helvetica, sans-serif;
+}
+label.modal>input[type=checkbox]:checked ~ div > label h1.title::after{
+    content: "";
+    display:block;
+    width:90%;
+    height:2px;
+    margin: 5px auto 0 auto;
+    background-image: linear-gradient(to right,rgba(0,0,0,0),rgba(0,0,0,0.9),rgba(0,0,0,1),rgba(0,0,0,0.9),rgba(0,0,0,0));
+}
+/* label.modal>input[type=checkbox]:checked ~ div > label table{border-collapse: collapse;}
+label.modal>input[type=checkbox]:checked ~ div > label table,
+label.modal>input[type=checkbox]:checked ~ div > label table tr,
+label.modal>input[type=checkbox]:checked ~ div > label table td{
+    border:solid transparent 2px;
+    width:100%;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 15pt;
+    vertical-align: middle;
+} */
+
+button.select{
+    display:inline-block;
+    height:40px;
+    line-height: 35px;
+    min-width: 110px;
+    padding:0 0 0 10px;
+    margin:0;
+    outline: none;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    border: 3px solid darkcyan;
+    background-color: darkcyan;
+    border-color:rgba(0,0,0,0);
+    vertical-align:top;
+    font-size: 15pt;
+    color:white;
+    text-align: left;
+}
+button.select.dropdownmenu, button.select.onlyButton{min-width: 50px;}
+button.select.dropdownmenu > div{display: none;}
+button.select.block{display: block;width:100%;}
+button.select:hover{border-color:rgba(0,0,0,0.5);}
+button.select:focus{background-color: rgb(0, 230, 230);}
+button.select>div{background-color: inherit;}
+button.select:focus{
+    overflow: visible;
+    border: 3px solid black;
+    z-index: 100;
+    color:black;
+}
+button.select::before{
+    content: "";
+    position: absolute;
+    top:0;
+    left:0;
+    width:100%;
+    z-index: 10;  
+    height: 100%;
+}
+button.select:focus::before{
+    background-color:inherit;
+    box-sizing: initial;
+    top:100%;
+    height: 3px;
+    margin-top:-3px;
+}
+
+
+button.select::after{
+    content: "";
+    background-position: center  center;
+    background-repeat: no-repeat;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAICAYAAADA+m62AAAAfElEQVQoU33OMQ4BURAG4G8V2IZW4jROoFftMTYuwCU0KqUTiLvoVDTWVmQSL3l5yfq7mfmSfyq8MfE/fYUDNpgO2A6ngJEX6gEYjXWCaxwxK/ATDc4Jxv2CVQGvaZfDOe4Y/3CPBR4x5zDmFlt8sMcuNZQw9jeMsMzf+ALgCxKfcgLydQAAAABJRU5ErkJggg==');
+    position: absolute;
+    right:0;
+    top:0;
+    width:30px;
+    bottom:0;
+    z-index: 10;
+    transform: rotate(0deg);
+    background-color:rgb(212, 212, 212);
+}
+button.select:hover::after{
+    background-color:rgb(255, 255, 255);
+}
+button.select:focus::after{
+    transform: rotate(180deg);
+    background-color:inherit;
+
+}
+button.select > div{
+    margin-top :40px;
+    overflow-y: auto;
+    max-height:600%;
+    padding:4px 0;
+    box-sizing: initial;
+}
+
+button.select:focus > div{
+    min-width: 100%;
+    position: absolute;
+    top:-9px;
+    border: solid black 3px;
+    left:-3px;
+    display:block;
+}
+
+button.select > div > label,
+button.select > div > label >  span{
+    display: block;
+    background-color: inherit;
+    color:black;
+    text-align: left;
+    
+}
+
+button.select > div > label > span{
+    padding: 0px 10px;
+    white-space: nowrap;
+    position: relative;
+    height:30px;
+}
+button.select > div > label:last-child > input + span{margin: 0;}
+button.select > div > label > input:checked + span{
+    color: white;
+    position: absolute;
+    top:0;
+    left:0;
+    overflow: hidden;
+    display: block;
+    height:100%;
+    background-color: inherit;
+    width:100%;
+}
+button.select:focus > div > label > input + span{line-height: 30px;}
+button.select:focus > div > label > input:checked + span{
+    color: white;
+    position: relative;
+    background-color: darkcyan;
+    height:30px;
+    line-height: 30px;
+    width:auto;
+}
+button.select.dropdownmenu:focus > div > label > input:checked + span{
+    color: black;
+    background-color: inherit;
+}
+button.select.dropdownmenu:focus > div > label > input:checked + span:hover{
+    background-color:rgb(0, 136, 177);color:white;
+}
+button.select > div > label > span:hover{background-color:rgb(0, 136, 177);color:white;}
+button.select > div > label > input{
+    position: absolute;
+    top:0;
+    left:0;
+    width:0px;
+    height:0px;
+}
+button.select > div > label > input[type='button']{opacity: 0;}
+button.select.dropdownmenu::after,button.select.onlyButton::after{display: none;}
+button.select.onlyButton::before{visibility: collapse;}
+button.select.onlyButton:focus{border-color:transparent; color:white;}
+button.select.onlyButton:hover{border-color:rgba(0,0,0,0.5);}
+button.select.onlyButton:active{border-color:rgba(0,0,0,1);}
+button.select.onlyButton>div{display: none;}
+button.select.left:focus > div{
+    left:initial;
+    right:-3px;
+}
+button.select.above::after{transform: rotate(180deg);}
+button.select.above:focus > div{
+    top:unset;
+    bottom: 100%;
+}
+button.select.above:focus::before{top:0px;}
+button.select.above:focus::after{transform: rotate(0deg);}
+div.expanderbox{border:rgba(0,0,0,0.3) solid 5px;}
+div.expander
+{
+    position: relative;
+    display: block;
+    width:100%;
+    color:white;
+    line-height: 30px;
+    overflow: hidden;
+}
+div.expander input
+{
+    position: absolute;
+    top:0;
+    left:0;
+}
+div.expander label
+{
+    position: relative;
+    display: block;
+    padding:5px 10px;
+    cursor: pointer;
+    background-color:rgb(56, 119, 255);
+    box-shadow: 0px 3px 7px transparent;
+    transition: box-shadow 0.2s;
+}
+div.expander label:hover
+{
+    background-color:rgb(45, 92, 194);
+}
+div.expander>div
+{
+    display:block;
+    height:0px;
+    width:100%;
+    background-color:rgb(70, 70, 70);
+    overflow: hidden;
+    transition: all 0.2s;
+}
+div.expander input:checked ~ div{height: 300px;}
+div.expander>div>div
+{
+    display:block;
+    padding:10px;
+    height:100%;
+    line-height: initial;
+    overflow: auto;
+}
+
+div.expander label::after {
+    content: "";
+    display: block;
+    height:10px;
+    width:10px;
+    position: absolute;
+    right:15px;
+    top:10px;
+    transform: rotate(45deg);
+    border-right:2px solid white;
+    border-bottom:2px solid white;
+    transition: 0.2s all;
+}
+div.expander input:checked + label::after {
+    transform: rotate(225deg);
+    top:16px;
+}
+
+div.expander input:checked + label
+{
+    box-shadow: 0px 3px 10px black;
+    background-color:rgb(0, 107, 121);
+}
+
+    div.tabControl
+{
+    position: relative;
+    height: 400px;
+    width: 100%;
+    overflow: hidden;
+    font-size: 0;
+    background-color: rgba(0,0,0,0.3);
+}
+div.tabControl>div
+{
+    display: inline-block;
+    font-size: 12pt;
+    color:white;
+}
+div.tabControl>div>input[type='radio']
+{
+    position: absolute;
+    top:0;
+    left:0;
+    z-index:-100;
+}
+div.tabControl>div>label
+{
+    position: relative;
+    background-color: rgb(56, 119, 255);
+    height: 40px;
+    line-height: 40px;
+    padding: 0 15px;
+    display: inline-block;
+    cursor: pointer;
+    box-shadow: 0px 3px 7px transparent;
+    z-index: 0;
+}
+div.tabControl>div>div
+{
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background-color:rgb(70, 70, 70);
+    top: 40px;
+    left: 0;
+    padding: 10px 10px 50px 10px;
+    display: none;
+}
+div.tabControl>div>div>div
+{
+    display:block;
+    width:100%;
+    height:100%;
+    overflow: auto;
+}
+div.tabControl>div>input[type='radio']:checked + label{background-color:rgb(0, 107, 121);box-shadow: 0px 3px 9px black;z-index: 10;}
+div.tabControl>div>input[type='radio']:checked ~ div{display: block;z-index: 20;}

@@ -1,0 +1,48 @@
+[
+    {"var": {"item":10, "stringTest":""}},
+    {
+        "if":[
+            {"case":["$item","==",30],"then":[]},
+            {"case":["$item","==",10],"then":[]},
+            {"else":[]}
+        ]
+    },
+    {
+        "for":{"i":[0,"<",10,1],"then":[
+            {"invokeFunction":{"FunctionName":["$i"]}}
+        ]}
+    },
+    {
+        "for":{"each":"i","then":[
+            {"invokeFunction":{"FunctionName":["$i"]}}
+        ]}
+    },
+    {
+        "while":{
+            "case":["$item","==",10],
+            "do":[
+                
+            ]
+        }
+    },
+    {"apply":{"name":["argument","argument","argument"]}},
+    {
+        "function":{
+            "name":"FunctionName",
+            "arguments":["number"],
+            "body":[
+                {"add":["$number",10]}
+            ]
+        }
+    },
+    {"invoke":{"FunctionName":["argument","argument","argument"]}},
+    {
+        "construct":{
+            "className":{
+                "propertyName" : "value",
+                "propertyName2" : null,
+                "propertyName3" : 10
+            }
+        }
+    }
+]

@@ -1,0 +1,58 @@
+- In Server Functions:
+
+    - Object(Dictionary) : WatcherStack
+        - A stack that all the watchers sit on
+
+    - IPC Client 
+        - On initialisation :
+            - Wait for database connection
+            - (StartWatching)
+        - Receives commands 
+
+    - StartWatching : []
+        - Gets definitions from the Watcher collection
+        - For each item within the collection applies StartWatcher using [ collectionName ] and [ pipeline ]
+        - this will be used or first initialisation
+
+    - StartWatcher : [ collectionName, pipeline ]
+        - Begin watching a Collection [ collectionName ] using [ pipeline ]
+        - When a change is found (transmitToWebhooks)
+    
+    - transmitToWebhooks : [ document, collectionName ]
+        - Access Webhook collection
+        - Foreach item in the collection transmit the document within an event structure
+
+
+- REST Server functions:
+
+    - CreateWebhook : [ IP, Port ]
+        - Adds the IP and Port to the WebHook collection
+
+    - DeleteWebHook : [ IP, Port ]
+        - Removes the IP and Port from the WebHook collection
+
+    - CreateWatcher : [ collectionName, pipeline ]
+        - Adds a Watcher to the Watcher collection and grabs it's new _id
+        - Initiates the watcher immediately to start transmitting changes (StartWatcher)
+
+    - ReadWatcher : [ _id?, collectionName? ]
+        - if _id is given, trys to return single document with corresponding _id
+        - if collectionName is given, trys to return documents with given collectionName
+        - if neither are given, returns all documents
+        - if both are given, prioritises _id
+
+    - UpdateWatcher : [ _id, collectionName, pipeline ]
+        - Stops the watcher temporarily
+        - Finds the document in the Watcher collection then overwrites the contents with the supplied collectionName and pipeline
+        - Initiates the watcher (StartWatcher)
+
+    - DeleteWatcher : [ _id ]
+        - Stops the watcher
+        - Finds the document in the Watcher collection and deletes it
+
+
+/mongo/Playground/MoreTesting?_id=6048b42b8c52f757c8e53729
+
+
+[{"_id":"6048b42b8c52f757c8e53729","item":"foo2","message":"bar2"},{"_id":"6048f6365cbeaa598c69a18e","item":"foo3","message":"bar3"}]
+{"QueryDelay":1000,"Queries":[{"Query":"body","Name":"ScraperResults","Nodes":[{"IsUnique":true,"Query":"a","Name":"Thing"}]}]}

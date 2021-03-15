@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Console</title>
+    <link rel="stylesheet" href="styles/components.css"/>
+    <style>
+        *{
+            box-sizing:border-box;
+        }
+        body{
+            width:100%;
+            height:100%;
+            padding:0;
+            margin:0;
+        }
+        div.container
+        {
+            position:absolute;
+            top:10px;
+            left:10px;
+            right:10px;
+            bottom:150px;
+            display:block;
+            padding-top:30px;
+            padding-bottom:70px;
+            background-color:rgb(189, 189, 189);
+        }
+        div.toolbar{
+            display: block;
+            width:100%;
+            margin-top:-30px;
+            height:60px;
+            padding:10px;
+            color:white;
+        }
+        div.consoleDisplay{
+            display:block;
+            width: 100%;
+            height: 100%;
+            background-color:black;
+            overflow-y: auto;
+            
+            color:white;
+        }
+        
+        button.clearButton
+        {
+            float:left;
+            border:none;
+            outline:none;
+            cursor: pointer;
+            padding:9px;
+            font-size:15px;
+        }
+        
+        label.scrollButton input:checked + span::after{
+            float:right;
+            content: "✔";
+        }
+        div.commandBox_container{
+            display: block;
+            position: absolute;
+            bottom: 0;
+            height:50px;
+            left:0;
+            right:0;
+            background-color:rgb(131, 131, 131);
+        }
+        div.commandBox{
+            position: absolute;
+            left:150px;
+            right:100px;
+            height:50px;
+            line-height: 50px;
+            font-family: Arial, Helvetica, sans-serif;
+            outline:none;
+            padding-left:10px;
+        }
+        div.commandBox:hover,div.commandBox:focus{
+            background-color: rgb(173, 173, 173);
+            color:black;
+        }
+        button.select:focus, button.select:focus > div{
+            border-color: rgb(202, 202, 202);
+        }
+        .bottomCorner{
+            position:absolute;
+            left:0;
+            top:0;
+            width:150px;
+            bottom:0;
+        }
+        button.sendButton{
+            position: absolute;
+            right:0px;
+            height:50px;
+            width: 100px;
+            border:none;
+            background-color:lightgray;
+            outline:none;
+            cursor: pointer;
+        }
+        button.sendButton:hover{
+            background-color:rgb(184, 184, 184); 
+        }
+        button.sendButton::after{
+            content: '';
+            display: inline-block;
+            border: black 3px solid;
+            border-radius: 3px;
+            height: 10px;
+            width: 10px;
+            border-bottom: 0;
+            border-left: 0;
+            transform: rotate(45deg);
+            margin-left: -7px;
+        }
+        
+        button.clearButton::after{content: "Clear";}
+
+        .messageContainer{
+            position: relative;
+            padding: 0 0 0 50px;
+        }
+        
+        .messageContainer .indexNumber{
+            position: absolute;
+            left:0%;
+            top:0;
+            bottom: 0;
+            width:50px;
+            text-align: center;
+            padding:10px;
+            background-color: rgb(27, 27, 27);
+        }
+        div.consoleDisplay .messageContainer:last-child{
+            margin-bottom:100px;
+        }
+        .messageContainer .indexNumber+div{
+            padding:10px;
+            background-color: transparent;
+        }
+        .messageContainer .indexNumber+div::after{
+            display: block;
+            position: absolute;
+            right:10px;
+            top:5px;
+            bottom: 5px;
+            padding: 5px;
+            color:black;
+            border-radius: 5px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 15px;
+            font-weight: bolder;
+        }
+        .command{color: rgb(137, 184, 255);cursor: pointer;}
+        .message {color: lightgreen;}
+        .request {color: rgb(255, 153, 153);}
+        .command:hover::after{
+            content: "command";
+            background-color: rgb(137, 184, 255); 
+        }
+        .message:hover::after{
+            content: "message";
+            background-color: lightgreen; 
+        }
+        .request:hover::after{
+            content: "request";
+            background-color: rgb(255, 153, 153); 
+        }
+        .messageContainer:hover .indexNumber{background-color: rgb(59, 59, 59);}
+        .messageContainer:hover .command{ color:rgb(255, 255, 255);}
+        .messageContainer:hover .message{ color:rgb(255, 255, 255);}
+        .messageContainer:hover .request{ color:rgb(255, 255, 255);}
+
+        .objectPreview{
+            position:absolute;
+            bottom:50px;
+            height:300px;
+            right:0;
+            left:0;
+            background-color: rgb(78, 78, 78);
+        }
+        .objectPreview .previewBar{
+            position: absolute;
+            top:0;
+            left:0;
+            right:0;
+            height:30px;
+            background-color: rgba(255, 255, 255, 0.342);
+            text-align: right;
+        }
+        .objectPreview .previewBar .cancelConstruct{
+            border:0;
+            height:100%;
+            padding:0 10px;
+            background-color: rgb(255, 140, 140);
+            line-height: 30px;
+            outline: none;
+            cursor: pointer;
+        }
+        .objectPreview .previewBar .cancelConstruct:hover{background-color: rgb(255, 189, 189);}
+        .objectPreview .panel{
+            position: absolute;
+            top:30px;
+            bottom:0;
+            left:0;
+            right: 0;
+            overflow-y: scroll;
+            word-wrap: break-word;
+            color: white;
+        }
+        .objectPreview .panel table{
+            width: 100%;
+            table-layout: fixed;
+        }
+        .objectPreview .panel table td{
+            height:30px;
+            text-align: center;
+        }
+        .objectPreview.hidden{
+            display: none;
+        }
+
+
+    </style>
+    <script src="./Elemental.ReWrite.js"></script>
+    <script src="socket.io.js"></script>
+    <script src="socketCall.js"></script>
+</head>
+<body>
+</body>
+</html>

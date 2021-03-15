@@ -1,0 +1,38 @@
+To Do:
+Build Database querying, aswell as visual development
+Need to create Unique Identifier Key for finding and overwriting already recorded data
+Learn and apply watchers to the database for events
+
+
+Results Collection
+
+-Collection
+    -Node(Unique)(No SubNodes allowed or AttributeNodes)
+    -Node
+        -AttributeNode
+        -AttributeNode
+        -SubNode
+        -SubNode
+            -SubNode
+                -SubNode
+    -Node
+        -SubNode
+-Collection
+    -Node
+    -Node(Unique)
+    -Node
+
+Node :
+{
+    IsUnique : boolean (1 in a Collection, top level node),
+    Name : string (Name of the node to store),
+    Children : Node[] (Array of Nodes(or SubNodes of the current Node)),
+    Attributes : AttributeNode[] (Array of Attribute Nodes to scrape)
+}
+AttributeNode:
+{
+    Name : string (Name of the Attribute to store, will store the same as regular Node),
+    AttributeName : string (Name of Attribute to Grab)
+}
+
+ScriptPlatformTest

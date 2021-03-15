@@ -1,0 +1,40 @@
+[{
+   "_id":{
+      "$oid":"5ffc246f1ad629063050defd"
+   },
+   "Query":".propertyCard",
+   "Nodes":[
+      {
+         "IsUnique":true,
+         "IsTopLevel":true,
+         "Query":".propertyCard-details",
+         "Name":"Details"
+      },
+      {
+         "IsUnique":false,
+         "IsTopLevel":true,
+         "Query":".propertyCard-priceValue",
+         "Name":"Price"
+      }
+   ],
+   "Name":"ScraperResults",
+   "ParentID":"5fd8f02194541f5eec4f41dc",
+   "ResolveDelay":0
+}]
+
+To convert the json to an XML format we need to treat all the properties as elements
+we also have to treat all the elements in arrays as items of their parents
+
+
+Push events:
+
+- Create a server to receive webhook requests from the server
+- Send a request to server with the hook address
+- Setup new table to store aggregation requests and get the server to start watching with them
+- Tell the watcher to watch based on tables
+- Load aggregation set into the client
+- When a change is made, have the requests send events to the client to then appropriately do something    
+
+
+require("http").request({host: "127.0.0.1",port: "3535",path:"/"}).end();
+var msg = "foo" ;var options = {host: "127.0.0.1",port: "3535",method: "POST",path:"/",headers: {'Content-Type': 'application/json','Content-Length': msg.length}}; var r = require('http').request(options); r.write(msg); r.end();
