@@ -1,6 +1,4 @@
 const { MongoClient, ObjectId, ObjectID} = require("mongodb");
-const http = require("http");
-const { PipeController } = require("./PipeController");
 
 /**
  * Class to control mongo operations while providing a system for sending change updates
@@ -10,26 +8,15 @@ class MongoController {
      * Creates MongoController
      * @param {string} database Name of Database
      * @param {string} connectionString Connection string to mongodb
-     * @param {PipeController} controller PipeController to send messages down
      */
-    constructor(database,connectionString, controller) {
+    constructor(database,connectionString) {
         this.database = database;
         this.connectionString = connectionString;
         this.activeDB = null; 
-        this.controller = controller;
     }
-
-    async getCollection(collectionName){
-        var stringit = this.connectionString;
-        var client = await MongoClient.connect(stringit, { useUnifiedTopology: true });
-        return client.db(this.database).collection(collectionName);
-    }
-    async getCollections(){
-        return (await(await MongoClient.connect(this.connectionString, { useUnifiedTopology: true })).db(this.database).collections());
-    }
-
     async setUpDB(){
-        this.activeDB = (await MongoClient.connect(this.connectionString, { useUnifiedTopology: true })).db(this.database);
+        if(this.activeDB === null)this.activeDB = (await MongoClient.connect(this.connectionString, { useUnifiedTopology: true })).db(this.database);
+        return this.activeDB;
     }
 
     /**
@@ -38,8 +25,8 @@ class MongoController {
      * @param {string} id
      */
     async deleteDocument(collectionName, id){
-		var collection = await this.getCollection(collectionName);
-        this.sendUpdate(await collection.findOneAndDelete({ _id: new ObjectId(id) }), collection.collectionName);
+		var collection = (await this.setUpDB()).collection(collectionName);
+        this.addUpdate(collectionName, await collection.findOneAndDelete({ _id: new ObjectId(id) }),"Delete");
     };
 
     /**
@@ -48,11 +35,10 @@ class MongoController {
      * @param {{}} filter
      */
     async deleteDocuments (collectionName, filter){
-		var collection = await this.getCollection(collectionName);
+		var collection = (await this.setUpDB()).collection(collectionName);
         var recovered = await collection.find(filter).toArray();
         await collection.deleteMany(filter);
-        this.sendUpdate(recovered, collection.collectionName);
-        return recovered;
+        recovered.forEach(recovered=>this.addUpdate(collectionName,recovered,"Delete"));
     };
 
     /**
@@ -60,41 +46,36 @@ class MongoController {
      * @param {{}} filter 
      */
     async totalDelete (filter) {
-        var dictionary = {};
-        await Promise.all((await this.getCollections()).map(collection => new Promise(async (res, rej) => {
-            var recovered = await collection.find(filter).toArray();
-            await collection.deleteMany(filter);
-            dictionary[collection.collectionName] = recovered;
-            res();
-        })));
-        var watchers = (await this.database.collection("Watchers").find().toArray());
-        Object.getOwnPropertyNames(dictionary).forEach(x => {
-            if (watchers.find(y => y.collectionName === x))
-                this.sendUpdate(dictionary[x], x);
-        });
+        var db = await this.setUpDB();
+        await Promise.all((await db.collections()).map(collection=>this.deleteDocuments(collection.collectionName,filter)));
     };
     /**
      * Function used for either updating an old document or inserting a new one.
      * If no filter is supplied but there is an _id on the document it will use the _id to search.
      * If neither are present it will assume it is an insert operation.
      * @param {string} collection Collection to apply changes to
-     * @param {{}|{}[]} document Document/s to be inserted or updated
+     * @param {{}[]} documents Document/s to be inserted or updated
      * @param {{}} filter Filter used to find the document to be updated
      */
      async upsertDocument (collectionName, documents, filter){
-        if(this.activeDB === null)await this.setUpDB();
+        var that = this;
+        var db = await this.setUpDB();
         documents = Array.isArray(documents)? documents : [documents];
-		var collection = this.activeDB.collection(collectionName);
+		var collection = db.collection(collectionName);
         var isFilter = filter && Object.getOwnPropertyNames(filter).length>0;
-        var vals = await Promise.all(documents.map(document=>new Promise((r,j)=>{
+        async function upsertItem(document){
             var newFilter = isFilter ? filter :  Reflect.has(document,"_id") ? {"_id": new ObjectID(document["_id"])} : null ;
             if(Reflect.has(document,"_id"))Reflect.deleteProperty(document,"_id");
-            if(newFilter !== null) collection.findOneAndUpdate( newFilter, { $set: document }, { upsert: true, returnOriginal: false }).then(x=>r(x.value));
-            else collection.insertOne(document).then(x=>r(x.ops[0]));
-        })));
-        vals = vals.length === 1 ? vals[0] : vals;
-        this.sendUpdate(vals,collectionName);
-        return vals;
+            if(newFilter !== null){
+                var updatedItem = await collection.findOneAndUpdate( newFilter, { $set: document }, { upsert: true, returnOriginal: false });
+                await that.addUpdate(collectionName,String(updatedItem.value["_id"]),"Update");
+            }
+            else{
+                var insertItem = await collection.insertOne(document);
+                await that.addUpdate(collectionName,String(insertItem.insertedId),"Insert");
+            }
+        }
+        await Promise.all(documents.map(document=>{return upsertItem(document);}));
     };
 
     /**
@@ -105,8 +86,7 @@ class MongoController {
      */
     async upsertMany(collectionName, documents, filter){
         if(Array.isArray(documents)){
-            var docs = await Promise.all(documents.map(document=>this.upsertDocument(collectionName,document,filter,false)));
-            this.sendUpdate(docs,collection);
+            await Promise.all(documents.map(document=>this.upsertDocument(collectionName,document,filter)));
         }
     }
 
@@ -135,43 +115,75 @@ class MongoController {
     }
 
     /**
-     * Creates / Updates a Webhook
-     * @param {string} IP 
-     * @param {string} Port 
+     * Add a new update to the Database then update any pending Updates
+     * @param {string} collectionName Collection name that was affected
+     * @param {string[]|{}} IDorDocument Id of the affected document or the document itself
+     * @param {string} type Action that caused the change
      */
-    async setHook(IP,Port){
-        await this.upsertDocument("Webhooks",{IP:IP,Port:Port}, {IP:IP,Port:Port});
-    }
-
-    /**
-     * Creates / Updates a Watcher
-     * @param {string} collectionName 
-     */
-    async setWatcher(collectionName){
-        await this.upsertDocument("Watchers",{collectionName:collectionName}, {collectionName:collectionName});
-    }
-
-    /**
-     * Deletes a Watcher
-     * @param {string} _id 
-     */
-    async deleteWatcher(_id){
-        await this.deleteDocument("Watchers",_id);
-    }
-
-    /**
-     * Sends an update to the bound Webhooks
-     * @param {{}|Object[]} documents Document or documents to send
-     * @param {string} collectionName Name of the origin collection
-     */
-    async sendUpdate(documents, collectionName) {
-        var eventStruct = JSON.stringify((Array.isArray(documents) ? documents : [documents]).map(document => { return { collectionName: collectionName, document: document }; }));
-        var count = await this.activeDB.collection("Watchers").countDocuments({collectionName:collectionName})
-        if(count>0){
-            debugger;
-            this.controller.transmitToPipes(eventStruct);
+    async addUpdate(collectionName, IDorDocument, type){
+        var db = await this.setUpDB();
+        var counter = await db.collection("counters").findOneAndUpdate({collection:"Updates"},{"$inc":{ count : 1}},{upsert:true,returnOriginal:false});
+        if(Reflect.has(counter.value,"count")){
+            var document = {collectionName : collection, type : type, countNum:counter.value["count"]};
+            if(typeof(IDorDocument) === "string")document["doc_id"] = IDorDocument;
+            else document["doc_recovered"] = IDorDocument;
+            await db.collection("Updates").insertOne(document);
         }
-    };
+    }
+
+    /**
+     * Function for retrieving updates, if an id is found to be larger than the amount of updates available and long polling is enabled it will wait until new updates are given
+     * @param {number} id the id to get updates
+     * @param {string[]} collectionNames Array of collectionNames to get updates for
+     * @param {Object} options Options for retrieving updates
+     * @param {boolean} options.allowLongPolling Determines whether long polling is allowed (default : true)
+     * @param {boolean} options.waitUntilAtleastOne Should we wait until atleast one update is found or until the id count id fufilled?(default : false)
+     * @param {number} options.timeout Length of time in milliseconds for the request to timeout (default : 30000)
+     * @param {number} options.updateBlock Maximum number of updates to return at once (default : 5)
+     * @param {boolean} options.rejectOnTimeout If true, reject on timeout or return results if false (default : false)
+     */
+    async getUpdates(id, collectionNames, options ={}){ // Add filtering collectionNames to aggregation
+        var subpipe = [
+            {'$sort': {'countNum': -1}}, 
+            {'$limit': options.updateBlock || 5},
+            {'$match': {'$expr': {'$gte': ['$countNum', id]}}}
+        ];
+        if(collectionNames && Array.isArray(collectionNames))subpipe.push({"$match":{"$expr":{"$in":["$collection",collectionNames]}}});
+        subpipe.push({'$project': { '_id': 0 }});
+        var pipe = [
+            {'$match': {'collection': 'Updates'}}, 
+            {'$limit': 1}, 
+            {
+              '$lookup': {
+                    'from': 'Updates', 
+                    'pipeline': subpipe, 
+                    'as': 'updates'
+                }
+            }, 
+            {'$project': {'_id': 0,'collection': 0}}
+        ];
+        return await new Promise((res,rej)=>{
+            this.setUpDB().then(db=>{
+                var counters = db.collection("counters");
+                var timeoutTimer = null;
+                function getResults(){counters.aggregate(pipe).toArray().then(results=>{res(results.shift());});}
+                (function check(){
+                    counters.findOne({collection:"Updates"}).then(counter=>{
+                        if(Reflect.has(counter,"count")){
+                            if(id <= counter["count"])getResults();
+                            else if(options.allowLongPolling === undefined || options.allowLongPolling){
+                                if(timeoutTimer === null)timeoutTimer = setTimeout(() => {
+                                    if(options.rejectOnTimeout)rej("Long polling timed out");else getResults();
+                                }, options.timeout || 30000);
+                                setTimeout(check, 200);
+                            }else getResults();
+                        }
+                    });
+                })();
+            })
+            
+        });
+    }
 }
 
 module.exports = {MongoController};

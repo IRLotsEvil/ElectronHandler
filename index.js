@@ -39,63 +39,18 @@ const _console = new RemoteConsole(ports.consoleSocket).
         };
         var webRequest = http.request(options).on("response",res=>{
             var r = "";
-            res.on("data",c=>r+=c).on("end",()=>_console.log(r));
+            res.on("data",c=>r+=c).on("end",()=>_console.log(r !== ""?r:"void"));
         });
         webRequest.write(body);
         webRequest.end();
-    })).addFunction("Pipe",new ConsoleFunction({name:""},msg=>{
-        pipeController.addPipe(msg.name);
-    })).addFunction("WriteToPipe",new ConsoleFunction({data:""},msg=>{
-        pipeController.transmitToPipes(msg.data);
     }));
 
-const pipeController = new PipeController();
 const processServer = new ipcServer("\\\\.\\pipe\\electronPipe");
-
 express.use(require("express").static(path.join(__dirname,"ConsoleParts"))).use(urlencoded({extended:true})).use(json()).
-post("/request",async function(req,res){
-    const { Type , Package } = req.body;
-    if(Type === "QRequest")
-        processServer.openTempProcess(Package,ports.electron,[path.join(__dirname,"processes","scraper.js")]).then(x=>{
-            if(x && Array.isArray(x)){
-                var messages = [];
-                (function takeOne(msg = null){
-                    if(msg !== null)messages.push(msg);
-                    if(x.length>0){
-                        const {CollectionName, Results, UniqueID}  = x.shift();
-                        if(Array.isArray(Results)){
-                            if(Results.length>0){
-                                var operation = {Operation:"Upsert",Subject:Results, CollectionName:CollectionName, UniqueID: UniqueID};
-                                processServer.openTempProcess(operation,path.join(__dirname,"processes","mongo.js"),["mongostring="+ports.mongoDB]).then(y=>{
-                                    takeOne({ CollectionName : CollectionName, HasResults : true, IsInserted:true, Body : "Results have been upserted" });
-                                }).catch(x=>{
-                                    takeOne({ CollectionName : CollectionName, HasResults : true, IsInserted:false, Body : "Results couldn't be upserted" });
-                                });
-                            }else takeOne({ CollectionName : CollectionName, HasResults : false, IsInserted:false, Body : "No Results found" });
-                        }
-                    }else res.send(JSON.stringify({Messages:messages, ReturnType:"Scraper"}));
-                })();
-            }else res.send(JSON.stringify({Message:"Request Failed"}));
-        });
-    else if(Type === "MongoOperation")
-        processServer.openTempProcess(Package,path.join(__dirname,"processes","mongo.js"),["mongostring="+ports.mongoDB]).then(x=>res.send(x));
-    else if(Type === "Extraction")
-        switch(Package.ExtractionType){
-            case "PDF":
-                processServer.openTempProcess(Package,path.join(__dirname,"processes","pdfparser.js")).then(x=>{
-                    processServer.openTempProcess({Operation:"Create",Subject:x, CollectionName:"PDFResults"},path.join(__dirname,"processes","mongo.js"),["mongostring="+ports.mongoDB]).then(y=>res.send(JSON.stringify({Message:"PDF has been deconstructed"})));
-                });
-                break;
-            case "Image":
-                processServer.openTempProcess(Package,path.join(__dirname,"processes","tesseract.js")).then(x=>res.send(x));
-                break;
-        }
-    else res.send("Type not Recognised");
-}).
 all("/mongo/:databaseName/:collectionName?",(req,res)=>{
     if(req.query && Reflect.has(req.query,"_id"))req.query._id = new ObjectID(req.query._id);
     const Subject = req.body;
-    var controller = new MongoController(req.params.databaseName,ports.mongoDB, pipeController);
+    var controller = new MongoController(req.params.databaseName,ports.mongoDB);
     (function(){
         var resolved = Promise.resolve((reso,reje)=>reso("resolved"));
         if(req.method === "POST"){
@@ -135,7 +90,7 @@ all("/mongo/:databaseName/:collectionName?",(req,res)=>{
     Package["URL"] = addresses;
     processServer.openTempProcess(Package,ports.electron,[path.join(__dirname,"processes","scraper.js")]).then(x=>{
         if(x && Array.isArray(x)){
-            var controller = new MongoController("Playground",ports.mongoDB,pipeController);
+            var controller = new MongoController("Playground",ports.mongoDB);
             var promises = []; 
             for(var y of x){
                 const {CollectionName, Results, UniqueID} = y;
@@ -151,6 +106,19 @@ all("/mongo/:databaseName/:collectionName?",(req,res)=>{
                 res.send("Completed");
             });
         }else res.send(JSON.stringify({Message:"Request Failed"}));
+    });
+})
+.get("/getUpdates",(req,res)=>{
+    var controller = new MongoController("Playground",ports.mongoDB);
+    var id = Reflect.has(req.query,"id") ?  parseInt(req.query.id) : 0;
+    var options ={};
+    if(Reflect.has(req.query,"allowLongPolling"))options["allowLongPolling"] = Boolean(req.query["allowLongPolling"]);
+    if(Reflect.has(req.query,"waitUntilAtleastOne"))options["waitUntilAtleastOne"] = Boolean(req.query["waitUntilAtleastOne"]);
+    if(Reflect.has(req.query,"rejectOnTimeout"))options["rejectOnTimeout"] = Boolean(req.query["rejectOnTimeout"]);
+    if(Reflect.has(req.query,"updateBlock"))options["updateBlock"] = Number(req.query["updateBlock"]);
+    if(Reflect.has(req.query,"timeout"))options["timeout"] = Number(req.query["timeout"]);
+    controller.getUpdates(id,Array.isArray(req.body)?req.body:null,options).then(x=>{
+        res.send(JSON.stringify(x));
     });
 })
 .listen(ports.webServer);
