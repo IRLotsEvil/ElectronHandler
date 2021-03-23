@@ -124,7 +124,7 @@ class MongoController {
         var db = await this.setUpDB();
         var counter = await db.collection("counters").findOneAndUpdate({collection:"Updates"},{"$inc":{ count : 1}},{upsert:true,returnOriginal:false});
         if(Reflect.has(counter.value,"count")){
-            var document = {collectionName : collection, type : type, countNum:counter.value["count"]};
+            var document = {collection : collectionName, type : type, countNum:counter.value["count"]};
             if(typeof(IDorDocument) === "string")document["doc_id"] = IDorDocument;
             else document["doc_recovered"] = IDorDocument;
             await db.collection("Updates").insertOne(document);

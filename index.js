@@ -2,7 +2,6 @@ const express = require("express")();
 const path = require("path");
 const fs = require("fs");
 const { ipcServer } = require("./Classes/ipc");
-const { PipeController } = require("./Classes/PipeController");
 const { RemoteConsole,ConsoleFunction} = require("./Classes/RemoteConsole");
 const http = require("http");
 const { json, urlencoded} = require("express");
