@@ -1,5 +1,5 @@
 const { BrowserWindow, app, ipcMain } = require("electron");
-const { ipcClient } = require("../ipc");
+const { ipcClient } = require("../Classes/ipc");
 app.on("ready",()=>{
     var window = new BrowserWindow({show:true,webPreferences:{ preload:__dirname+"\\injectorImproved.js", offscreen:false }});
     // window.webContents.openDevTools({mode:"detach"});
