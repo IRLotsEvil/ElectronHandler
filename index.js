@@ -107,8 +107,8 @@ all("/mongo/:databaseName/:collectionName?",(req,res)=>{
         }else res.send(JSON.stringify({Message:"Request Failed"}));
     });
 })
-.get("/getUpdates",(req,res)=>{
-    var controller = new MongoController("Playground",ports.mongoDB);
+.get("/getUpdates/:database",(req,res)=>{
+    var controller = new MongoController(req.params["database"],ports.mongoDB);
     var id = Reflect.has(req.query,"id") ?  parseInt(req.query.id) : 0;
     var options ={};
     if(Reflect.has(req.query,"allowLongPolling"))options["allowLongPolling"] = Boolean(req.query["allowLongPolling"]);
