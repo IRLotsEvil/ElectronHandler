@@ -64,7 +64,7 @@ class MongoController {
 		var collection = db.collection(collectionName);
         var isFilter = filter && Object.getOwnPropertyNames(filter).length>0;
         async function upsertItem(document){
-            var newFilter = isFilter ? filter :  Reflect.has(document,"_id") ? {"_id": new ObjectID(document["_id"])} : null ;
+            var newFilter = isFilter ? filter :  Reflect.has(document,"_id") && document["_id"] !== null ? {"_id": new ObjectID(document["_id"])} : null ;
             if(Reflect.has(document,"_id"))Reflect.deleteProperty(document,"_id");
             if(newFilter !== null){
                 var updatedItem = await collection.findOneAndUpdate( newFilter, { $set: document }, { upsert: true, returnOriginal: false });
@@ -73,9 +73,11 @@ class MongoController {
             else{
                 var insertItem = await collection.insertOne(document);
                 await that.addUpdate(collectionName,String(insertItem.insertedId),"Insert");
+                return String(insertItem.insertedId);
             }
         }
-        await Promise.all(documents.map(document=>{return upsertItem(document);}));
+        var results = await Promise.all(documents.map(document=>{return upsertItem(document);}));
+        if(results.length === 1)return results[0];else results;
     };
 
     /**
@@ -112,6 +114,17 @@ class MongoController {
 		if(this.activeDB === null)await this.setUpDB();
 		var collection = this.activeDB.collection(collectionName);
         return await collection.findOne(filter);
+    }
+
+
+    /**
+     * Function that applies aggregations to the collection and returns the documents
+     * @param {string} collectionName Collection to apply aggrgation to
+     * @param {{}[]} pipeline PipeLine to aggregations
+     */
+    async aggregateDocuments(collectionName,pipeline){
+        var db = await this.setUpDB();
+        return await db.collection(collectionName).aggregate(pipeline).toArray();
     }
 
     /**

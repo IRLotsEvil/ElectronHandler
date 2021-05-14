@@ -56,3 +56,9 @@
 
 [{"_id":"6048b42b8c52f757c8e53729","item":"foo2","message":"bar2"},{"_id":"6048f6365cbeaa598c69a18e","item":"foo3","message":"bar3"}]
 {"QueryDelay":1000,"Queries":[{"Query":"body","Name":"ScraperResults","Nodes":[{"IsUnique":true,"Query":"a","Name":"Thing"}]}]}
+
+
+CollectionNode = {
+    Query: string,
+    
+}
