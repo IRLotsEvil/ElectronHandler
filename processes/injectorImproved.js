@@ -33,8 +33,12 @@ Element.prototype.queryObject = function(objectOrArray){
     var target = (Array.isArray(objectOrArray) ? objectOrArray : [objectOrArray]);
     if(target.every(x=>Reflect.has(x,"Nodes"))){
         return target.map(x=>{
-            return { CollectionName : x["Name"], UniqueID : x.Nodes.find(y=>y.IsUnique).Name, Results:this.queryElemental(x.Query).map(y=>y.queryObject(x["Nodes"])) };
-        });
+            const { Nodes, Name } = x;
+            if(Array.isArray(Nodes) && Nodes.some(y=>y.IsUnique)){
+                var UNode = Nodes.find(y=>y.IsUnique);
+                return { CollectionName : Name, UniqueID : UNode.Name, Results:this.queryElemental(x.Query).map(y=>y.queryObject(x["Nodes"])) };
+            }else return null;
+        }).filter(x=>x != null);
     }else{
         return target.reduce((a,x)=>{
             if(typeof x === "object"){

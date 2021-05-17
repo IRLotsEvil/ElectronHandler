@@ -64,18 +64,22 @@ class MongoController {
 		var collection = db.collection(collectionName);
         var isFilter = filter && Object.getOwnPropertyNames(filter).length>0;
         async function upsertItem(document){
-            var newFilter = isFilter ? filter :  Reflect.has(document,"_id") ? {"_id": new ObjectID(document["_id"])} : null ;
+            var newFilter = isFilter ? filter :  Reflect.has(document,"_id") && document["_id"] !== null ? {"_id": new ObjectID(document["_id"])} : null ;
             if(Reflect.has(document,"_id"))Reflect.deleteProperty(document,"_id");
             if(newFilter !== null){
-                var updatedItem = await collection.findOneAndUpdate( newFilter, { $set: document }, { upsert: true, returnOriginal: false });
-                await that.addUpdate(collectionName,String(updatedItem.value["_id"]),"Update");
+                var updatedItem = await collection.findOneAndUpdate( newFilter, { $set: document }, {returnOriginal: false });
+                if(updatedItem.ok === 1 && updatedItem.value !== null)
+                {
+                    await that.addUpdate(collectionName,String(updatedItem.value["_id"]),"Update");
+                    return;
+                }
             }
-            else{
-                var insertItem = await collection.insertOne(document);
-                await that.addUpdate(collectionName,String(insertItem.insertedId),"Insert");
-            }
+            var insertItem = await collection.insertOne(document);
+            await that.addUpdate(collectionName,String(insertItem.insertedId),"Insert");
+            return String(insertItem.insertedId);
         }
-        await Promise.all(documents.map(document=>{return upsertItem(document);}));
+        var results = await Promise.all(documents.map(document=>{return upsertItem(document);}));
+        if(results.length === 1)return results[0];else results;
     };
 
     /**
@@ -114,6 +118,17 @@ class MongoController {
         return await collection.findOne(filter);
     }
 
+
+    /**
+     * Function that applies aggregations to the collection and returns the documents
+     * @param {string} collectionName Collection to apply aggrgation to
+     * @param {{}[]} pipeline PipeLine to aggregations
+     */
+    async aggregateDocuments(collectionName,pipeline){
+        var db = await this.setUpDB();
+        return await db.collection(collectionName).aggregate(pipeline).toArray();
+    }
+
     /**
      * Add a new update to the Database then update any pending Updates
      * @param {string} collectionName Collection name that was affected
@@ -139,24 +154,21 @@ class MongoController {
      * @param {boolean} options.allowLongPolling Determines whether long polling is allowed (default : true)
      * @param {boolean} options.waitUntilAtleastOne Should we wait until atleast one update is found or until the id count id fufilled?(default : false)
      * @param {number} options.timeout Length of time in milliseconds for the request to timeout (default : 30000)
-     * @param {number} options.updateBlock Maximum number of updates to return at once (default : 5)
+     * @param {number} options.updateBlock Maximum number of updates to return at once, -1 means all updates from where the id starts (default : 5)
      * @param {boolean} options.rejectOnTimeout If true, reject on timeout or return results if false (default : false)
      */
-    async getUpdates(id, collectionNames, options ={}){ // Add filtering collectionNames to aggregation
-        var subpipe = [
-            {'$sort': {'countNum': -1}}, 
-            {'$limit': options.updateBlock || 5},
-            {'$match': {'$expr': {'$gte': ['$countNum', id]}}}
-        ];
-        if(collectionNames && Array.isArray(collectionNames))subpipe.push({"$match":{"$expr":{"$in":["$collection",collectionNames]}}});
-        subpipe.push({'$project': { '_id': 0 }});
+    async getUpdates(id, collectionNames, options ={}){
         var pipe = [
             {'$match': {'collection': 'Updates'}}, 
             {'$limit': 1}, 
             {
               '$lookup': {
                     'from': 'Updates', 
-                    'pipeline': subpipe, 
+                    'pipeline': [{'$sort': {'countNum': -1}}].
+                        concat(options.updateBlock === -1 ? []: [{'$limit': options.updateBlock || 5}]).
+                        concat([{'$match': {'$expr': {'$gte': ['$countNum', id]}}}]).
+                        concat(Array.isArray(collectionNames) ?[{"$match":{"$expr":{"$in":["$collection",collectionNames]}}}]:[]).
+                        concat([{'$sort': {'countNum': 1}}]), 
                     'as': 'updates'
                 }
             }, 
