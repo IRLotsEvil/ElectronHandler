@@ -67,14 +67,16 @@ class MongoController {
             var newFilter = isFilter ? filter :  Reflect.has(document,"_id") && document["_id"] !== null ? {"_id": new ObjectID(document["_id"])} : null ;
             if(Reflect.has(document,"_id"))Reflect.deleteProperty(document,"_id");
             if(newFilter !== null){
-                var updatedItem = await collection.findOneAndUpdate( newFilter, { $set: document }, { upsert: true, returnOriginal: false });
-                await that.addUpdate(collectionName,String(updatedItem.value["_id"]),"Update");
+                var updatedItem = await collection.findOneAndUpdate( newFilter, { $set: document }, {returnOriginal: false });
+                if(updatedItem.ok === 1 && updatedItem.value !== null)
+                {
+                    await that.addUpdate(collectionName,String(updatedItem.value["_id"]),"Update");
+                    return;
+                }
             }
-            else{
-                var insertItem = await collection.insertOne(document);
-                await that.addUpdate(collectionName,String(insertItem.insertedId),"Insert");
-                return String(insertItem.insertedId);
-            }
+            var insertItem = await collection.insertOne(document);
+            await that.addUpdate(collectionName,String(insertItem.insertedId),"Insert");
+            return String(insertItem.insertedId);
         }
         var results = await Promise.all(documents.map(document=>{return upsertItem(document);}));
         if(results.length === 1)return results[0];else results;
@@ -166,7 +168,7 @@ class MongoController {
                         concat(options.updateBlock === -1 ? []: [{'$limit': options.updateBlock || 5}]).
                         concat([{'$match': {'$expr': {'$gte': ['$countNum', id]}}}]).
                         concat(Array.isArray(collectionNames) ?[{"$match":{"$expr":{"$in":["$collection",collectionNames]}}}]:[]).
-                        concat([{'$project': { '_id': 0}},{'$sort': {'countNum': 1}}]), 
+                        concat([{'$sort': {'countNum': 1}}]), 
                     'as': 'updates'
                 }
             }, 
