@@ -57,10 +57,9 @@ all("/mongo/:databaseName/:collectionName?",(req,res)=>{
             return (req.params["collectionName"] === null)?
                 resolved:
                 (req.query)?controller.readDocuments(req.params["collectionName"],req.query) : 
-                (Array.isArray(req.body))?controller.aggregateDocuments(req.params["collectionName"],req.body) : 
                 controller.readDocuments(req.params["collectionName"]);
         }else if(req.method === "PUT"){
-            return (req.query)?controller.upsertDocument(req.params["collectionName"],req.body,req.query) : resolved;
+            return controller.aggregateDocuments(req.params["collectionName"],req.body);
         }else if(req.method === "DELETE"){
             return (req.query)?
             (req.params["collectionName"])?

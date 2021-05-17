@@ -13,11 +13,15 @@ app.on("ready",()=>{
                     window.webContents.once("dom-ready",()=>window.webContents.send("Compile",data));
                     window.loadURL(URL.shift(),{postData:PostData});
                 }).then(function(result){
-                    if(results === null) results = result;
-                    else{
-                        results = Object.getOwnPropertyNames(results).reduce((a,c)=>{
-                            if(Reflect.has(result,c) && Array.isArray(result[c]) && Array.isArray(results[c]))
-                                a[c] = a[c].concat(result[c]);
+                    if(results === null){ 
+                        results = result;
+                    }else{
+                        results = result.reduce((a,c)=>{
+                            const { Results, CollectionName, UniqueID} = c;
+                            if(Array.isArray(Results)){
+                                var num = results.findIndex(x=>x.CollectionName === CollectionName);
+                                if(num >-1)a[num].Results = a[num].Results.concat(Results);
+                            }
                             return a;
                         },results);
                     }
